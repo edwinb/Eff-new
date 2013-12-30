@@ -242,13 +242,11 @@ Eff m t xs = EffM m t xs (\v => xs)
 
 -- some higher order things
 
-{-
-mapE : Applicative m => (a -> Eff m xs b) -> List a -> Eff m xs (List b)
+mapE : Applicative m => (a -> Eff m b xs) -> List a -> Eff m (List b) xs
 mapE f []        = pure []
 mapE f (x :: xs) = [| f x :: mapE f xs |]
 
-when : Applicative m => Bool -> Eff m xs () -> Eff m xs ()
+when : Applicative m => Bool -> Eff m () xs -> Eff m () xs
 when True  e = e
 when False e = pure ()
--}
 
