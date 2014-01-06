@@ -5,7 +5,7 @@ import Effects
 %access public
 
 data State : Effect where
-     Get :      State a a (\v => a)
+     Get :      State a  a (\v => a)
      Put : b -> State () a (\v => b)
 
 using (m : Type -> Type)

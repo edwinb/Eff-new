@@ -17,6 +17,12 @@ class Handler (e : Effect) (m : Type -> Type) where
      handle : res -> (eff : e t res resk) -> 
               ((x : t) -> resk x -> m a) -> m a
 
+-- A bit of syntactic sugar ('syntax' is not very flexible so we only go
+-- up to a small number of parameters...)
+
+syntax "{" [inst] "==>" [outst] "}" [eff] = eff inst (\result => outst)
+syntax "{" [inst] "}" [eff] = eff inst (\result => inst)
+
 ---- Properties and proof construction
 
 using (xs : List a, ys : List a)
@@ -232,7 +238,7 @@ runPure : Env id xs -> EffM id a xs xs' -> a
 runPure env prog = eff env prog (\r, env => r)
 
 -- runPureEnv : Env id xs -> EffM id a xs xs' -> (x : a ** Env id (xs' x))
--- runPureEnv env prog = eff env prog (\r, env => (r ** env))
+-- runPureEnv env prog = eff env prog (%unifyLog (\r, env => id (r ** env)))
 
 runWith : (a -> m a) -> Env m xs -> EffM m a xs xs' -> m a
 runWith inj env prog = eff env prog (\r, env => inj r)

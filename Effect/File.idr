@@ -12,20 +12,18 @@ openOK m False = ()
 
 data FileIO : Effect where
      Open  : String -> (m : Mode) -> 
-             FileIO Bool () (openOK m)
-     Close : FileIO () (OpenFile m) (\v => ())
+             {() ==> if result then OpenFile m else ()} FileIO Bool
+     Close : {OpenFile m ==> ()}               FileIO () 
 
-     ReadLine  :           FileIO String (OpenFile Read)  (\v => (OpenFile Read))
-     WriteLine : String -> FileIO ()     (OpenFile Write) (\v => (OpenFile Write))
-     EOF       :           FileIO Bool   (OpenFile Read)  (\v => (OpenFile Read))
-
+     ReadLine  :           {OpenFile Read}  FileIO String 
+     WriteLine : String -> {OpenFile Write} FileIO ()
+     EOF       :           {OpenFile Read}  FileIO Bool
 
 instance Handler FileIO IO where
     handle () (Open fname m) k = do h <- openFile fname m
                                     valid <- validFile h
-                                    case valid of
-                                         True => k True (FH h)
-                                         False => k False ()
+                                    if valid then k True (FH h) 
+                                             else k False ()
     handle (FH h) Close      k = do closeFile h
                                     k () ()
     handle (FH h) ReadLine        k = do str <- fread h
@@ -39,21 +37,24 @@ FILE_IO : Type -> EFFECT
 FILE_IO t = MkEff t FileIO
 
 open : Handler FileIO e =>
-       String -> (m : Mode) -> EffM e Bool [FILE_IO ()]
-                                           (\v => [FILE_IO (openOK m v)])
+       String -> (m : Mode) -> 
+       { [FILE_IO ()] ==> [FILE_IO (if result then OpenFile m else ())] } EffM e Bool
 open f m = Open f m
 
 close : Handler FileIO e =>
-        EffM e () [FILE_IO (OpenFile m)] (\v => [FILE_IO ()])
+        { [FILE_IO (OpenFile m)] ==> [FILE_IO ()] } EffM e ()
 close = Close
 
-readLine : Handler FileIO e => Eff e String [FILE_IO (OpenFile Read)]
+readLine : Handler FileIO e => 
+           { [FILE_IO (OpenFile Read)] } EffM e String 
 readLine = ReadLine
 
-writeLine : Handler FileIO e => String -> Eff e () [FILE_IO (OpenFile Write)]
+writeLine : Handler FileIO e => 
+            String -> { [FILE_IO (OpenFile Write)] } EffM e ()
 writeLine str = WriteLine str
 
-eof : Handler FileIO e => Eff e Bool [FILE_IO (OpenFile Read)]
+eof : Handler FileIO e => 
+      { [FILE_IO (OpenFile Read)] } EffM e Bool 
 eof = EOF
 
 

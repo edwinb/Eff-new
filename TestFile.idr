@@ -6,14 +6,13 @@ import Effect.StdIO
 
 data Test : Type where
 
-readFile : Eff IO () [Test ::: FILE_IO (OpenFile Read), STDIO]
+readFile : { [Test ::: FILE_IO (OpenFile Read), STDIO] } EffM IO ()
 readFile = if !(Test :- eof) then return ()
               else do putStrLn !(Test :- readLine)
                       readFile
 
-read : String -> Eff IO () [Test ::: FILE_IO (), STDIO]
-read f = do x <- Test :- open f Read
-            case x of
+read : String -> { [Test ::: FILE_IO (), STDIO] } EffM IO ()
+read f = do case !(Test :- open f Read) of
                  False => return ()
                  True => do readFile
                             Test :- close 
