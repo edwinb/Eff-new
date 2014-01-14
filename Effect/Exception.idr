@@ -5,7 +5,7 @@ import System
 import Control.IOExcept
 
 data Exception : Type -> Effect where 
-     Raise : a -> Exception a b () (\v => ())
+     Raise : a -> { () } Exception a b
 
 instance Handler (Exception a) Maybe where
      handle _ (Raise e) k = Nothing
@@ -23,9 +23,8 @@ instance Handler (Exception a) (Either a) where
 EXCEPTION : Type -> EFFECT
 EXCEPTION t = MkEff () (Exception t)
 
-raise : a -> Eff m b [EXCEPTION a]
+raise : a -> { [EXCEPTION a ] } Eff m b 
 raise err = Raise err
-
 
 
 

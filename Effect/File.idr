@@ -38,23 +38,23 @@ FILE_IO t = MkEff t FileIO
 
 open : Handler FileIO e =>
        String -> (m : Mode) -> 
-       { [FILE_IO ()] ==> [FILE_IO (if result then OpenFile m else ())] } EffM e Bool
+       { [FILE_IO ()] ==> [FILE_IO (if result then OpenFile m else ())] } Eff e Bool
 open f m = Open f m
 
 close : Handler FileIO e =>
-        { [FILE_IO (OpenFile m)] ==> [FILE_IO ()] } EffM e ()
+        { [FILE_IO (OpenFile m)] ==> [FILE_IO ()] } Eff e ()
 close = Close
 
 readLine : Handler FileIO e => 
-           { [FILE_IO (OpenFile Read)] } EffM e String 
+           { [FILE_IO (OpenFile Read)] } Eff e String 
 readLine = ReadLine
 
 writeLine : Handler FileIO e => 
-            String -> { [FILE_IO (OpenFile Write)] } EffM e ()
+            String -> { [FILE_IO (OpenFile Write)] } Eff e ()
 writeLine str = WriteLine str
 
 eof : Handler FileIO e => 
-      { [FILE_IO (OpenFile Read)] } EffM e Bool 
+      { [FILE_IO (OpenFile Read)] } Eff e Bool 
 eof = EOF
 
 

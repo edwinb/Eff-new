@@ -3,8 +3,8 @@ module Effect.Random
 import Effects
 
 data Random : Effect where 
-     getRandom : Random Integer Integer (\v => Integer)
-     setSeed   : Integer -> Random () Integer (\v => Integer)
+     getRandom : { Integer } Random Integer 
+     setSeed   : Integer -> { Integer } Random () 
 
 using (m : Type -> Type)
   instance Handler Random m where
@@ -16,10 +16,10 @@ using (m : Type -> Type)
 RND : EFFECT
 RND = MkEff Integer Random
 
-rndInt : Integer -> Integer -> Eff m Integer [RND]
+rndInt : Integer -> Integer -> { [RND] } Eff m Integer
 rndInt lower upper = do v <- getRandom
                         return (v `prim__sremBigInt` (upper - lower) + lower)
 
-srand : Integer -> Eff m () [RND]
+srand : Integer -> { [RND] } Eff m ()
 srand n = setSeed n
 

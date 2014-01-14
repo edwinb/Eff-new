@@ -130,29 +130,29 @@ relabel {xs = (MkEff a e :: xs)} l (v :: vs) = (l := v) :: relabel l vs
 
 -- the language of Effects
 
-data EffM : (m : Type -> Type) ->
-            (x : Type) ->
-            List EFFECT -> (x -> List EFFECT) -> Type where
-     value   : a -> EffM m a xs (\v => xs)
-     (>>=)   : EffM m a xs xs' -> 
-               ((val : a) -> EffM m b (xs' val) xs'') -> EffM m b xs xs''
+data Eff : (m : Type -> Type) ->
+           (x : Type) ->
+           List EFFECT -> (x -> List EFFECT) -> Type where
+     value   : a -> Eff m a xs (\v => xs)
+     (>>=)   : Eff m a xs xs' -> 
+               ((val : a) -> Eff m b (xs' val) xs'') -> Eff m b xs xs''
      effect  : (prf : EffElem e a xs) ->
                (eff : e t a b) ->
-               EffM m t xs (\v => updateResTy v xs prf eff)
+               Eff m t xs (\v => updateResTy v xs prf eff)
 
      lift    : (prf : SubList ys xs) ->
-               EffM m t ys ys' -> EffM m t xs (\v => updateWith (ys' v) xs prf)
+               Eff m t ys ys' -> Eff m t xs (\v => updateWith (ys' v) xs prf)
      new     : Handler e m =>
                res -> 
-               EffM m a (MkEff res e :: xs) (\v => (MkEff res' e :: xs')) ->
-               EffM m a xs (\v => xs')
+               Eff m a (MkEff res e :: xs) (\v => (MkEff res' e :: xs')) ->
+               Eff m a xs (\v => xs')
      catch   : Catchable m err =>
-               EffM m a xs xs' -> (err -> EffM m a xs xs') ->
-               EffM m a xs xs'
+               Eff m a xs xs' -> (err -> Eff m a xs xs') ->
+               Eff m a xs xs'
 
      (:-)    : (l : ty) -> 
-               EffM m t [x] xs' -> -- [x] (\v => xs) -> 
-               EffM m t [l ::: x] (\v => map (l :::) (xs' v))
+               Eff m t [x] xs' -> -- [x] (\v => xs) -> 
+               Eff m t [l ::: x] (\v => map (l :::) (xs' v))
 
 {-
 syntax [tag] ":!" [val] = !(tag :- val)
@@ -161,10 +161,10 @@ syntax [tag] ":!" [val] = !(tag :- val)
 -}
 
 implicit
-lift' : EffM m t ys ys' ->
+lift' : Eff m t ys ys' ->
         {default tactics { byReflection reflectEff; }
            prf : SubList ys xs} ->
-        EffM m t xs (\v => updateWith (ys' v) xs prf)
+        Eff m t xs (\v => updateWith (ys' v) xs prf)
 lift' e {prf} = lift prf e
 
 implicit
@@ -172,21 +172,21 @@ effect' : {a, b: _} -> {e : Effect} ->
           (eff : e t a b) ->
           {default tactics { byReflection reflectEff; }
              prf : EffElem e a xs} ->
-         EffM m t xs (\v => updateResTy v xs prf eff)
+         Eff m t xs (\v => updateResTy v xs prf eff)
 effect' e {prf} = effect prf e
 
-return : a -> EffM m a xs (\v => xs)
+return : a -> Eff m a xs (\v => xs)
 return x = value x
 
 -- for idiom brackets
 
 infixl 2 <$>
 
-pure : a -> EffM m a xs (\v => xs)
+pure : a -> Eff m a xs (\v => xs)
 pure = value
 
-(<$>) : EffM m (a -> b) xs (\v => xs) -> 
-        EffM m a xs (\v => xs) -> EffM m b xs (\v => xs)
+(<$>) : Eff m (a -> b) xs (\v => xs) -> 
+        Eff m a xs (\v => xs) -> Eff m b xs (\v => xs)
 (<$>) prog v = do fn <- prog
                   arg <- v
                   return (fn arg)
@@ -205,7 +205,7 @@ execEff (val :: env) (There p) eff k
 -- Q: Instead of m b, implement as StateT (Env m xs') m b, so that state
 -- updates can be propagated even through failing computations?
 
-eff : Env m xs -> EffM m a xs xs' -> ((x : a) -> Env m (xs' x) -> m b) -> m b
+eff : Env m xs -> Eff m a xs xs' -> ((x : a) -> Env m (xs' x) -> m b) -> m b
 eff env (value x) k = k x env
 eff env (prog >>= c) k
    = eff env prog (\p', env' => eff env' (c p') k)
@@ -227,32 +227,30 @@ eff {xs = [l ::: x]} env (l :- prog) k
    = let env' = unlabel env in
          eff env' prog (\p', envk => k p' (relabel l envk))
 
-run : Applicative m => Env m xs -> EffM m a xs xs' -> m a
+run : Applicative m => Env m xs -> Eff m a xs xs' -> m a
 run env prog = eff env prog (\r, env => pure r)
 
-runEnv : Applicative m => Env m xs -> EffM m a xs xs' -> 
+runEnv : Applicative m => Env m xs -> Eff m a xs xs' -> 
          m (x : a ** Env m (xs' x))
 runEnv env prog = eff env prog (\r, env => pure (r ** env))
 
-runPure : Env id xs -> EffM id a xs xs' -> a
+runPure : Env id xs -> Eff id a xs xs' -> a
 runPure env prog = eff env prog (\r, env => r)
 
--- runPureEnv : Env id xs -> EffM id a xs xs' -> (x : a ** Env id (xs' x))
+-- runPureEnv : Env id xs -> Eff id a xs xs' -> (x : a ** Env id (xs' x))
 -- runPureEnv env prog = eff env prog (%unifyLog (\r, env => id (r ** env)))
 
-runWith : (a -> m a) -> Env m xs -> EffM m a xs xs' -> m a
+runWith : (a -> m a) -> Env m xs -> Eff m a xs xs' -> m a
 runWith inj env prog = eff env prog (\r, env => inj r)
 
-Eff : (Type -> Type) -> Type -> List EFFECT -> Type
-Eff m t xs = EffM m t xs (\v => xs)
 
 -- some higher order things
 
-mapE : Applicative m => (a -> Eff m b xs) -> List a -> Eff m (List b) xs
+mapE : Applicative m => (a -> {xs} Eff m b) -> List a -> {xs} Eff m (List b)
 mapE f []        = pure []
 mapE f (x :: xs) = [| f x :: mapE f xs |]
 
-when : Applicative m => Bool -> Eff m () xs -> Eff m () xs
+when : Applicative m => Bool -> ({xs} Eff m ()) -> {xs} Eff m ()
 when True  e = e
 when False e = pure ()
 

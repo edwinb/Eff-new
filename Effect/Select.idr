@@ -3,7 +3,7 @@ module Effect.Select
 import Effects
 
 data Selection : Effect where
-     Select : List a -> Selection a () (\v => ())
+     Select : List a -> { () } Selection a 
 
 instance Handler Selection Maybe where
      handle _ (Select xs) k = tryAll xs where
@@ -18,6 +18,6 @@ instance Handler Selection List where
 SELECT : EFFECT
 SELECT = MkEff () Selection
 
-select : List a -> Eff m a [SELECT]
+select : List a -> { [SELECT] } Eff m a 
 select xs = Select xs
 

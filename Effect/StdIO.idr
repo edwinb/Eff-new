@@ -4,8 +4,8 @@ import Effects
 import Control.IOExcept
 
 data StdIO : Effect where
-     PutStr : String -> StdIO () () (\v => ())
-     GetStr : StdIO String () (\v => ())
+     PutStr : String -> { () } StdIO () 
+     GetStr : { () } StdIO String 
 
 instance Handler StdIO IO where
     handle () (PutStr s) k = do putStr s; k () ()
@@ -41,13 +41,13 @@ instance Handler StdIO IOStream where
 STDIO : EFFECT
 STDIO = MkEff () StdIO
 
-putStr : Handler StdIO e => String -> Eff e () [STDIO]
+putStr : Handler StdIO e => String -> { [STDIO] } Eff e ()
 putStr s = PutStr s
 
-putStrLn : Handler StdIO e => String -> Eff e () [STDIO]
+putStrLn : Handler StdIO e => String -> { [STDIO] } Eff e ()
 putStrLn s = putStr (s ++ "\n")
 
-getStr : Handler StdIO e => Eff e String [STDIO]
+getStr : Handler StdIO e => { [STDIO] } Eff e String
 getStr = GetStr
 
 -- mkStrFn : Env IOStream xs ->
